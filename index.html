@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca de Recursos Clínicos</title>
+<style>
+  :root{
+    --bg: #f6f3ec;
+    --ink: #2b2f2c;
+    --muted: #6f766f;
+    --sage: #5c7a63;
+    --sage-dark: #3f5a46;
+    --card-line: #e2ddd0;
+    --accent: #c9744b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: "Iowan Old Style","Palatino Linotype",Georgia,serif;
+  }
+  .sans{ font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+
+  /* Gate de acceso */
+  #gate{
+    position:fixed; inset:0; background:var(--sage-dark);
+    display:flex; align-items:center; justify-content:center; z-index:50;
+    padding:24px;
+  }
+  #gate.hidden{ display:none; }
+  .gate-box{
+    background:var(--bg); padding:40px 36px; border-radius:4px; max-width:380px; width:100%;
+    text-align:center;
+  }
+  .gate-box h1{ font-size:1.5rem; margin:0 0 8px; }
+  .gate-box p{ font-family: -apple-system, sans-serif; color:var(--muted); font-size:0.92rem; margin:0 0 20px; }
+  .gate-box input{
+    width:100%; padding:12px 14px; border:1px solid var(--card-line); border-radius:3px;
+    font-family: -apple-system, sans-serif; font-size:1rem; margin-bottom:12px;
+  }
+  .gate-box button{
+    width:100%; padding:12px; background:var(--sage); color:#fff; border:none; border-radius:3px;
+    font-family: -apple-system, sans-serif; font-size:0.95rem; cursor:pointer;
+  }
+  .gate-box button:hover{ background:var(--sage-dark); }
+  #gate-error{ color:var(--accent); font-size:0.85rem; font-family:-apple-system,sans-serif; min-height:18px; margin-top:8px; }
+
+  header{
+    padding:56px 24px 32px; max-width:1040px; margin:0 auto;
+    border-bottom:1px solid var(--card-line);
+  }
+  header .eyebrow{ font-family:-apple-system,sans-serif; color:var(--muted); font-size:0.85rem; margin-bottom:6px; }
+  header h1{ font-size:2.4rem; margin:0 0 6px; color:var(--sage-dark); }
+  header p{ font-family:-apple-system,sans-serif; color:var(--muted); margin:0; }
+  #search{
+    margin-top:24px; width:100%; max-width:420px; padding:11px 14px;
+    border:1px solid var(--card-line); border-radius:3px; font-family:-apple-system,sans-serif; font-size:0.95rem;
+    background:#fff;
+  }
+
+  main{ max-width:1040px; margin:0 auto; padding:32px 24px 80px; }
+  #crumb{ font-family:-apple-system,sans-serif; font-size:0.85rem; color:var(--muted); margin-bottom:20px; display:none; }
+  #crumb button{ background:none; border:none; color:var(--sage-dark); cursor:pointer; font-family:inherit; font-size:inherit; padding:0; text-decoration:underline; }
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px;
+  }
+  .card{
+    background:#fff; border:1px solid var(--card-line); border-radius:4px; padding:20px;
+    cursor:pointer; transition:border-color .15s ease;
+  }
+  .card:hover{ border-color:var(--sage); }
+  .card .icon{
+    width:38px; height:38px; border-radius:50%; background:var(--sage);
+    color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.1rem; margin-bottom:14px;
+  }
+  .card h3{ margin:0 0 4px; font-size:1.08rem; }
+  .card .count{ font-family:-apple-system,sans-serif; color:var(--muted); font-size:0.82rem; }
+
+  .file-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:#fff; border:1px solid var(--card-line); border-radius:4px; padding:14px 18px; margin-bottom:10px;
+    cursor:pointer;
+  }
+  .file-row:hover{ border-color:var(--sage); }
+  .file-row span.name{ font-family:-apple-system,sans-serif; font-size:0.95rem; }
+  .file-row span.tag{ font-family:-apple-system,sans-serif; font-size:0.75rem; color:var(--muted); border:1px solid var(--card-line); border-radius:20px; padding:2px 10px; }
+
+  .empty{ font-family:-apple-system,sans-serif; color:var(--muted); font-size:0.9rem; padding:40px 0; text-align:center; }
+
+  /* Visor */
+  #viewer{
+    position:fixed; inset:0; background:rgba(43,47,44,.92); z-index:40;
+    display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  #viewer.open{ display:flex; }
+  #viewer .frame{
+    background:#fff; width:100%; height:100%; max-width:900px; border-radius:4px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  #viewer .frame header{
+    padding:14px 20px; border:none; display:flex; justify-content:space-between; align-items:center; max-width:none;
+  }
+  #viewer .frame header h2{ font-size:1rem; margin:0; }
+  #viewer .frame header button{
+    background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--muted);
+  }
+  #viewer iframe{ flex:1; border:none; width:100%; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-box">
+    <h1>Biblioteca de Recursos</h1>
+    <p class="sans">Ingresá la contraseña que recibiste por correo al comprar el acceso.</p>
+    <input type="password" id="pw" placeholder="Contraseña" class="sans">
+    <button onclick="tryEnter()" class="sans">Entrar</button>
+    <div id="gate-error" class="sans"></div>
+  </div>
+</div>
+
+<header>
+  <div class="eyebrow sans">BIBLIOTECA CLÍNICA</div>
+  <h1>Recursos para profesionales</h1>
+  <p class="sans">Fichas, protocolos y herramientas organizadas por temática.</p>
+  <input type="text" id="search" class="sans" placeholder="Buscar carpeta o archivo…" oninput="onSearch(this.value)">
+</header>
+
+<main>
+  <div id="crumb" class="sans"></div>
+  <div id="content"></div>
+</main>
+
+<div id="viewer">
+  <div class="frame">
+    <header>
+      <h2 id="viewer-title" class="sans"></h2>
+      <button onclick="closeViewer()">×</button>
+    </header>
+    <iframe id="viewer-frame"></iframe>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONTRASEÑA DE ACCESO
+   Cambiá este texto por la clave que le vas a dar a tus compradores.
+   ============================================================ */
+const PASSWORD = "cambiar-esta-clave";
+
+/* ============================================================
+   ESTRUCTURA DE LA BIBLIOTECA
+   Cada categoría tiene un ícono, y una lista "files" con los
+   archivos reales. "file" debe ser el nombre EXACTO del archivo
+   que subiste a la carpeta /files/<categoria>/ en GitHub.
+   Agregá o quitá líneas acá para actualizar el contenido.
+   ============================================================ */
+const LIBRARY = {
+  "Ansiedad": { icon:"🌊", folder:"ansiedad", files:[
+    { name:"Ejemplo — reemplazá por tus archivos reales", file:"ejemplo.pdf" }
+  ]},
+  "Depresión": { icon:"🌧️", folder:"depresion", files:[] },
+  "Autoestima": { icon:"🌱", folder:"autoestima", files:[] },
+  "Regulación emocional": { icon:"📱", folder:"regulacion-emocional", files:[] },
+  "Trauma": { icon:"🧠", folder:"trauma", files:[] },
+  "Estrés": { icon:"🍃", folder:"estres", files:[] },
+  "TDAH": { icon:"⚡", folder:"tdah", files:[] },
+  "TCA": { icon:"🍎", folder:"tca", files:[] },
+  "TOC": { icon:"🔄", folder:"toc", files:[] },
+  "Familia y vínculos": { icon:"🏠", folder:"familia-vinculos", files:[] },
+  "Kit infantil": { icon:"🙂", folder:"kit-infantil", files:[] }
+};
+
+/* ------------------ lógica del sitio (no hace falta tocar esto) ------------------ */
+function tryEnter(){
+  const val = document.getElementById('pw').value;
+  const err = document.getElementById('gate-error');
+  if(val === PASSWORD){
+    sessionStorage.setItem('biblioteca-ok','1');
+    document.getElementById('gate').classList.add('hidden');
+  } else {
+    err.textContent = "Contraseña incorrecta.";
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') tryEnter(); });
+if(sessionStorage.getItem('biblioteca-ok')==='1'){
+  document.getElementById('gate').classList.add('hidden');
+}
+
+let currentCategory = null;
+
+function render(){
+  const content = document.getElementById('content');
+  const crumb = document.getElementById('crumb');
+  content.innerHTML = '';
+
+  if(!currentCategory){
+    crumb.style.display='none';
+    const grid = document.createElement('div');
+    grid.className='grid';
+    Object.entries(LIBRARY).forEach(([name,cat])=>{
+      const card = document.createElement('div');
+      card.className='card';
+      card.onclick=()=>{ currentCategory=name; render(); };
+      card.innerHTML = `<div class="icon">${cat.icon}</div><h3>${name}</h3><div class="count">${cat.files.length} archivo${cat.files.length===1?'':'s'}</div>`;
+      grid.appendChild(card);
+    });
+    content.appendChild(grid);
+  } else {
+    crumb.style.display='block';
+    crumb.innerHTML = `<button onclick="currentCategory=null; render();">Recursos</button> / ${currentCategory}`;
+    const cat = LIBRARY[currentCategory];
+    if(cat.files.length===0){
+      content.innerHTML = `<div class="empty">Todavía no hay archivos cargados en esta categoría.</div>`;
+      return;
+    }
+    cat.files.forEach(f=>{
+      const row = document.createElement('div');
+      row.className='file-row';
+      row.onclick=()=>openViewer(f.name, `files/${cat.folder}/${f.file}`);
+      row.innerHTML = `<span class="name">${f.name}</span><span class="tag">Ver</span>`;
+      content.appendChild(row);
+    });
+  }
+}
+
+function openViewer(name, path){
+  document.getElementById('viewer-title').textContent = name;
+  document.getElementById('viewer-frame').src = path;
+  document.getElementById('viewer').classList.add('open');
+}
+function closeViewer(){
+  document.getElementById('viewer').classList.remove('open');
+  document.getElementById('viewer-frame').src = '';
+}
+
+function onSearch(q){
+  q = q.trim().toLowerCase();
+  if(!q){ render(); return; }
+  currentCategory = null;
+  const content = document.getElementById('content');
+  document.getElementById('crumb').style.display='none';
+  content.innerHTML = '';
+  let found = false;
+  Object.entries(LIBRARY).forEach(([name,cat])=>{
+    cat.files.forEach(f=>{
+      if(f.name.toLowerCase().includes(q) || name.toLowerCase().includes(q)){
+        found = true;
+        const row = document.createElement('div');
+        row.className='file-row';
+        row.onclick=()=>openViewer(f.name, `files/${cat.folder}/${f.file}`);
+        row.innerHTML = `<span class="name">${f.name} <span style="color:var(--muted)">— ${name}</span></span><span class="tag">Ver</span>`;
+        content.appendChild(row);
+      }
+    });
+  });
+  if(!found) content.innerHTML = `<div class="empty">Sin resultados para "${q}".</div>`;
+}
+
+render();
+</script>
+</body>
+</html>
