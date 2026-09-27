@@ -27,10 +27,12 @@
   header .eyebrow{ color:var(--muted); font-size:.85rem; margin-bottom:6px; }
   header h1{ font-size:2.4rem; margin:0 0 6px; color:var(--sage-dark); }
   header p{ color:var(--muted); margin:0; }
-  #search{ margin-top:24px; width:100%; max-width:420px; padding:11px 14px; border:1px solid var(--card-line); border-radius:3px; font-size:.95rem; background:#fff; }
 
   main{ max-width:1040px; margin:0 auto; padding:32px 24px 80px; }
-  #crumb{ font-size:.85rem; color:var(--muted); margin-bottom:20px; }
+  #back-row{ margin-bottom:14px; min-height:34px; }
+  #back-row button{ background:var(--sage); color:#fff; border:none; border-radius:20px; padding:7px 16px; font-size:.85rem; cursor:pointer; }
+  #back-row button:hover{ background:var(--sage-dark); }
+  #crumb{ font-size:.85rem; color:var(--muted); margin-bottom:18px; }
   #crumb button{ background:none; border:none; color:var(--sage-dark); cursor:pointer; font-family:inherit; font-size:inherit; padding:0; text-decoration:underline; }
   #crumb .sep{ margin:0 4px; }
 
@@ -43,10 +45,10 @@
 
   .file-row{ display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid var(--card-line); border-radius:4px; padding:14px 18px; margin-bottom:10px; cursor:pointer; }
   .file-row:hover{ border-color:var(--sage); }
-  .file-row span.name{ font-size:.95rem; }
-  .file-row span.tag{ font-size:.75rem; color:var(--muted); border:1px solid var(--card-line); border-radius:20px; padding:2px 10px; }
+  .file-row span.name{ font-size:.92rem; }
+  .file-row span.tag{ font-size:.75rem; color:var(--muted); border:1px solid var(--card-line); border-radius:20px; padding:2px 10px; white-space:nowrap; margin-left:12px; }
 
-  .empty{ color:var(--muted); font-size:.9rem; padding:40px 0; text-align:center; }
+  .empty, .loading{ color:var(--muted); font-size:.9rem; padding:40px 0; text-align:center; }
 
   #viewer{ position:fixed; inset:0; background:rgba(43,47,44,.92); z-index:40; display:none; align-items:center; justify-content:center; padding:20px; }
   #viewer.open{ display:flex; }
@@ -73,12 +75,12 @@
   <div class="eyebrow">BIBLIOTECA CLÍNICA</div>
   <h1 style="font-family:Georgia,serif;">Recursos para profesionales</h1>
   <p>Fichas, protocolos y herramientas organizadas por temática.</p>
-  <input type="text" id="search" placeholder="Buscar carpeta o archivo…" oninput="onSearch(this.value)">
 </header>
 
 <main>
+  <div id="back-row"></div>
   <div id="crumb"></div>
-  <div id="content"></div>
+  <div id="content"><div class="loading">Cargando…</div></div>
 </main>
 
 <div id="viewer">
@@ -93,59 +95,59 @@
 
 <script>
 /* ============================================================
-   CONTRASEÑA — cambiá esto por la clave real de tus compradores
+   CONFIGURACIÓN — cambiá la contraseña acá.
+   GH_USER / GH_REPO ya están completados con tu repositorio.
    ============================================================ */
 const PASSWORD = "cambiar-esta-clave";
+const GH_USER = "roblesgonzalo1-png";
+const GH_REPO = "biblioteca-clinica";
+const GH_BRANCH = "main";
 
 /* ============================================================
-   ESTRUCTURA DE LA BIBLIOTECA (3 niveles, como tus carpetas)
-   Cada nodo tiene "slug" (nombre EXACTO de la carpeta en GitHub,
-   todo minúscula, sin espacios ni acentos) y:
-   - "children": si es una carpeta que contiene más carpetas
-   - "files": si es una carpeta final con archivos reales dentro
-   El "path" completo se arma solo, uniendo los slugs del camino.
-   Agregá tus archivos reales dentro de cada "files: []".
-   Formato de archivo: { name:"Lo que ve el usuario", file:"nombre-exacto.pdf" }
+   ESTRUCTURA DE CARPETAS (solo la organización, NO los archivos).
+   Los archivos se leen solos desde GitHub — no hace falta
+   listarlos acá. Si más adelante agregás una categoría nueva,
+   sumás un bloque acá con su "slug" = nombre exacto de la carpeta.
    ============================================================ */
 const LIBRARY = {
   "Recursos por temática": { icon:"🗂️", slug:"recursos-por-tematica", children:{
-    "Ansiedad": { icon:"🌊", slug:"ansiedad", files:[] },
-    "Depresión": { icon:"🌧️", slug:"depresion", files:[] },
-    "Autoestima": { icon:"🌱", slug:"autoestima", files:[] },
-    "Regulación emocional": { icon:"📱", slug:"regulacion-emocional", files:[] },
-    "Trauma": { icon:"🧠", slug:"trauma", files:[] },
-    "Estrés": { icon:"🍃", slug:"estres", files:[] },
-    "TDAH": { icon:"⚡", slug:"tdah", files:[] },
-    "TCA": { icon:"🍎", slug:"tca", files:[] },
-    "TOC": { icon:"🔄", slug:"toc", files:[] },
-    "Familia y vínculos": { icon:"🏠", slug:"familia-vinculos", files:[] }
+    "Ansiedad": { icon:"🌊", slug:"ansiedad" },
+    "Depresión": { icon:"🌧️", slug:"depresion" },
+    "Autoestima": { icon:"🌱", slug:"autoestima" },
+    "Regulación emocional": { icon:"📱", slug:"regulacion-emocional" },
+    "Trauma": { icon:"🧠", slug:"trauma" },
+    "Estrés": { icon:"🍃", slug:"estres" },
+    "TDAH": { icon:"⚡", slug:"tdah" },
+    "TCA": { icon:"🍎", slug:"tca" },
+    "TOC": { icon:"🔄", slug:"toc" },
+    "Familia y vínculos": { icon:"🏠", slug:"familia-vinculos" }
   }},
   "Herramientas de sesión": { icon:"🧰", slug:"herramientas-de-sesion", children:{
     "Intervenciones terapéuticas": { icon:"🧩", slug:"intervenciones-terapeuticas", children:{
-      "Técnicas DBT": { icon:"🌊", slug:"tecnicas-dbt", files:[] },
-      "Técnicas TCC": { icon:"🍀", slug:"tecnicas-tcc", files:[] },
-      "Mindfulness": { icon:"🧘", slug:"mindfulness", files:[] },
-      "Técnicas ACT": { icon:"🌿", slug:"tecnicas-act", files:[] },
-      "Neurociencias": { icon:"⚡", slug:"neurociencias", files:[] },
-      "Psicología positiva": { icon:"🌈", slug:"psicologia-positiva", files:[] },
-      "Terapia de esquemas": { icon:"🧱", slug:"terapia-de-esquemas", files:[] },
-      "Terapia sistémica": { icon:"🕸️", slug:"terapia-sistemica", files:[] }
+      "Técnicas DBT": { icon:"🌊", slug:"tecnicas-dbt" },
+      "Técnicas TCC": { icon:"🍀", slug:"tecnicas-tcc" },
+      "Mindfulness": { icon:"🧘", slug:"mindfulness" },
+      "Técnicas ACT": { icon:"🌿", slug:"tecnicas-act" },
+      "Neurociencias": { icon:"⚡", slug:"neurociencias" },
+      "Psicología positiva": { icon:"🌈", slug:"psicologia-positiva" },
+      "Terapia de esquemas": { icon:"🧱", slug:"terapia-de-esquemas" },
+      "Terapia sistémica": { icon:"🕸️", slug:"terapia-sistemica" }
     }},
-    "Evaluación": { icon:"📋", slug:"evaluacion", files:[] },
-    "Protocolos": { icon:"📄", slug:"protocolos", files:[] },
+    "Evaluación": { icon:"📋", slug:"evaluacion" },
+    "Protocolos": { icon:"📄", slug:"protocolos" },
     "Materiales de sesión": { icon:"🧳", slug:"materiales-de-sesion", children:{
-      "Tareas para pacientes": { icon:"📝", slug:"tareas-para-pacientes", files:[] },
-      "Fichas psicoeducación": { icon:"📄", slug:"fichas-psicoeducacion", files:[] },
-      "Documento sesiones": { icon:"📁", slug:"documento-sesiones", files:[] },
-      "Tareas y registros": { icon:"✅", slug:"tareas-y-registros", files:[] }
+      "Tareas para pacientes": { icon:"📝", slug:"tareas-para-pacientes" },
+      "Fichas psicoeducación": { icon:"📄", slug:"fichas-psicoeducacion" },
+      "Documento sesiones": { icon:"📁", slug:"documento-sesiones" },
+      "Tareas y registros": { icon:"✅", slug:"tareas-y-registros" }
     }}
   }},
   "Kit infantil": { icon:"🙂", slug:"kit-infantil", children:{
-    "TDAH": { icon:"⚡", slug:"tdah", files:[] },
-    "Ansiedad": { icon:"🌊", slug:"ansiedad", files:[] },
-    "Comportamiento": { icon:"🍀", slug:"comportamiento", files:[] },
-    "Luto": { icon:"🦋", slug:"luto", files:[] },
-    "Fichas de anamnesis": { icon:"📋", slug:"fichas-de-anamnesis", files:[] }
+    "TDAH": { icon:"⚡", slug:"tdah" },
+    "Ansiedad": { icon:"🌊", slug:"ansiedad" },
+    "Comportamiento": { icon:"🍀", slug:"comportamiento" },
+    "Luto": { icon:"🦋", slug:"luto" },
+    "Fichas de anamnesis": { icon:"📋", slug:"fichas-de-anamnesis" }
   }}
 };
 
@@ -162,92 +164,78 @@ function tryEnter(){
 document.getElementById('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') tryEnter(); });
 if(sessionStorage.getItem('biblioteca-ok')==='1'){ document.getElementById('gate').classList.add('hidden'); }
 
-let path = []; // array de nombres (claves) desde la raíz
+let path = [];
 
 function nodeAt(p){
   let node = { children: LIBRARY };
   for(const name of p){ node = node.children[name]; }
   return node;
 }
-function pathSlugs(p, extra){
-  const slugs = p.map(name => nodeAt(p.slice(0,p.indexOf(name)+1)).slug);
-  if(extra) slugs.push(extra);
-  return slugs.join('/');
+function slugPath(p){
+  return p.map((name,i) => nodeAt(p.slice(0,i+1)).slug).join('/');
 }
 
-function render(){
+async function render(){
   const content = document.getElementById('content');
   const crumb = document.getElementById('crumb');
-  content.innerHTML = '';
+  const backRow = document.getElementById('back-row');
 
-  // breadcrumb
+  backRow.innerHTML = path.length ? `<button onclick="path=path.slice(0,-1);render();">← Volver</button>` : '';
+
   let bc = `<button onclick="path=[];render();">Biblioteca</button>`;
   path.forEach((name,i)=>{ bc += `<span class="sep">/</span><button onclick="path=path.slice(0,${i+1});render();">${name}</button>`; });
   crumb.innerHTML = bc;
 
   const node = path.length ? nodeAt(path) : { children: LIBRARY };
+  content.innerHTML = '';
 
   if(node.children){
     const grid = document.createElement('div');
     grid.className='grid';
     Object.entries(node.children).forEach(([name,child])=>{
-      const count = child.children ? Object.keys(child.children).length + " carpetas" : child.files.length + " archivo" + (child.files.length===1?"":"s");
       const card = document.createElement('div');
       card.className='card';
       card.onclick=()=>{ path=[...path,name]; render(); };
+      const count = child.children ? Object.keys(child.children).length + " carpetas" : "Ver archivos";
       card.innerHTML = `<div class="icon">${child.icon}</div><h3>${name}</h3><div class="count">${count}</div>`;
       grid.appendChild(card);
     });
     content.appendChild(grid);
   } else {
-    if(node.files.length===0){
-      content.innerHTML = `<div class="empty">Todavía no hay archivos cargados en esta categoría.</div>`;
-      return;
+    content.innerHTML = '<div class="loading">Cargando archivos…</div>';
+    const sp = slugPath(path);
+    try{
+      const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/files/${sp}?ref=${GH_BRANCH}`);
+      if(!res.ok) throw new Error('No se pudo leer la carpeta');
+      const items = await res.json();
+      const files = items.filter(it => it.type === 'file' && it.name.toLowerCase() !== 'leeme.txt');
+      content.innerHTML = '';
+      if(files.length === 0){
+        content.innerHTML = '<div class="empty">Todavía no hay archivos cargados en esta categoría.</div>';
+        return;
+      }
+      files.sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
+        const row = document.createElement('div');
+        row.className='file-row';
+        const cdnUrl = `https://cdn.jsdelivr.net/gh/${GH_USER}/${GH_REPO}@${GH_BRANCH}/files/${sp}/${encodeURIComponent(f.name)}`;
+        row.onclick=()=>openViewer(f.name, cdnUrl);
+        row.innerHTML = `<span class="name">${f.name.replace(/\.[^/.]+$/, '')}</span><span class="tag">Ver</span>`;
+        content.appendChild(row);
+      });
+    }catch(e){
+      content.innerHTML = '<div class="empty">No se pudo cargar esta carpeta. Probá de nuevo en un minuto.</div>';
     }
-    node.files.forEach(f=>{
-      const row = document.createElement('div');
-      row.className='file-row';
-      row.onclick=()=>openViewer(f.name, `files/${pathSlugs(path,f.file)}`);
-      row.innerHTML = `<span class="name">${f.name}</span><span class="tag">Ver</span>`;
-      content.appendChild(row);
-    });
   }
 }
 
-function openViewer(name, filePath){
+function openViewer(name, url){
   document.getElementById('viewer-title').textContent = name;
-  document.getElementById('viewer-frame').src = filePath;
+  document.getElementById('viewer-frame').src = url;
   document.getElementById('viewer').classList.add('open');
 }
 function closeViewer(){
   document.getElementById('viewer').classList.remove('open');
   document.getElementById('viewer-frame').src = '';
-}
-
-function walkAll(node, trail, cb){
-  if(node.files){ node.files.forEach(f=>cb(f, trail)); }
-  if(node.children){ Object.entries(node.children).forEach(([name,child])=>walkAll(child,[...trail,name],cb)); }
-}
-
-function onSearch(q){
-  q = q.trim().toLowerCase();
-  if(!q){ render(); return; }
-  path = [];
-  const content = document.getElementById('content');
-  document.getElementById('crumb').innerHTML = '';
-  content.innerHTML = '';
-  let found = false;
-  walkAll({children:LIBRARY}, [], (f, trail)=>{
-    if(f.name.toLowerCase().includes(q) || trail.join(' ').toLowerCase().includes(q)){
-      found = true;
-      const row = document.createElement('div');
-      row.className='file-row';
-      row.onclick=()=>openViewer(f.name, `files/${pathSlugs(trail,f.file)}`);
-      row.innerHTML = `<span class="name">${f.name} <span style="color:var(--muted)">— ${trail.join(' / ')}</span></span><span class="tag">Ver</span>`;
-      content.appendChild(row);
-    }
-  });
-  if(!found) content.innerHTML = `<div class="empty">Sin resultados para "${q}".</div>`;
 }
 
 render();
